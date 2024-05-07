@@ -26,12 +26,23 @@ func init() {
 //
 // If there's error while reading file, or executing migrations it panics.
 func initDB() {
-    connStr := "user=" + os.Getenv("DB_LOGIN") + 
-    " dbname=" + os.Getenv("DB_NAME") + 
-    " password=" + os.Getenv("DB_PASSWORD") + 
-    " sslmode=disable"
-
+    var connStr string
     var err error
+
+    // Check if environment variable for remote database connection is set
+    if os.Getenv("REMOTE_DB_HOST") != "" {
+        connStr = "host=" + os.Getenv("REMOTE_DB_HOST") +
+            " port=" + os.Getenv("REMOTE_DB_PORT") +
+            " user=" + os.Getenv("REMOTE_DB_LOGIN") +
+            " password=" + os.Getenv("REMOTE_DB_PASSWORD") +
+            " dbname=" + os.Getenv("REMOTE_DB_NAME") +
+            " sslmode=disable"
+    } else { // Use local database configuration
+        connStr = "user=" + os.Getenv("DB_LOGIN") +
+            " dbname=" + os.Getenv("DB_NAME") +
+            " password=" + os.Getenv("DB_PASSWORD") +
+            " sslmode=disable"
+    }    
     db, err = sql.Open("postgres", connStr)
     if err != nil {
         log.Fatalf("Cannot connect to db: %v", err)
