@@ -52,9 +52,9 @@ func TestInsertOrder(t *testing.T) {
 
 
 func TestGetOrderFromCache(t *testing.T) {
-    orderData, err := database.GetOrder("b563feb7b2b84b6test")
-    if err != nil {
-        t.Errorf("Error getting test order from cache: %v", err)
+    orderData := database.OrderCache.Get("b563feb7b2b84b6test")
+    if orderData == nil {
+        t.Errorf("Error getting test order from cache")
     }
     if string(orderData) != stringOrderData {
         t.Fatalf("Got wrong test order data from cache: %s", string(orderData))
