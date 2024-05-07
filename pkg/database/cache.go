@@ -1,59 +1,91 @@
 package database
 
 import (
-	"fmt"
 	"log"
+	"sync"
+	"time"
 )
+var OrderCache *Cache = NewCache()
 
 type Cache struct {
-    orders map[string][]byte
+	entries map[string]*cacheEntry
+	mutex   sync.RWMutex
+	ticker  *time.Ticker
 }
 
-var CachePtr *Cache
+type cacheEntry struct {
+	order      []byte
+	expiration time.Time
+}
 
+func NewCache() *Cache {
+	cache := &Cache{
+		entries: make(map[string]*cacheEntry),
+		ticker:  time.NewTicker(time.Minute), // Check for expired entries every minute
+	}
 
-// Creates a new cache instance and fills it with orders from the database.
+	// Start a background goroutine to periodically check for expired entries
+	go func() {
+		for range cache.ticker.C {
+			cache.cleanup()
+		}
+	}()
+
+	return cache
+}
+
+// Set adds or updates a value in the cache with the specified UID and expiration time.
+func (c *Cache) Set(orderUID string, order []byte, expiration time.Duration) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.entries[orderUID] = &cacheEntry{
+		order:      order,
+		expiration: time.Now().Add(expiration),
+	}
+}
+
+// Retrieves the value associated with the specified key from the cache.
 //
-// It panics if there's error scanning orders.
+// If key does not exist in cache it attempts to get it from database.
 //
-// Mutex lock is not acquired, because function runs whenewer database is imported (i.e. before all the read/write processes).
-func initCache() {
-    CachePtr = &Cache{
-        orders: make(map[string][]byte),
-    }
-    rows, err := db.Query("SELECT * FROM orders")
-    if err != nil {
-        log.Fatalf("Failed to get orders from db: %v", err)
-        return
-    }
-    defer rows.Close()
-    
-    for rows.Next() {
-        var orderUID string
-        var order []byte
-        if err := rows.Scan(&orderUID, &order); err != nil {
-            log.Fatalf("Failed to scan order: %v", err)
-        } else {
-            CachePtr.orders[orderUID] = order
+// If the key does not exist in database returns nil.
+func (c *Cache) Get(orderUID string) []byte {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+    var value []byte
+	entry, ok := c.entries[orderUID]
+	if !ok {
+        log.Printf("%s - UID not found in cache\n", orderUID)
+        var err error
+        err, value = getOrder(orderUID)
+        if err != nil {
+            log.Printf("%s - UID not found in database\n", orderUID)
+            return nil
         }
+        go func() {
+            c.Set(orderUID, value, time.Second)
+		}()
+	} else {
+        value = entry.order
     }
+	return value
 }
 
-// Returns cached order data or error if the order is not in the cache.
-func GetOrder(orderUID string) ([]byte, error) {
-    mutex.Lock()
-    defer mutex.Unlock()
-    cachedOrder, ok := CachePtr.orders[orderUID]
-    if !ok {
-        return nil, fmt.Errorf("Order not found")
-    }
-    return cachedOrder, nil
+// removes expired entries from the cache.
+func (c *Cache) cleanup() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for key, entry := range c.entries {
+		if entry.expired() {
+			delete(c.entries, key)
+		}
+	}
 }
 
-// Stores the given order data in the cache under the provided orderUID.
-// It acquires a lock to ensure thread safety.
-func cacheOrder(order []byte, orderUID string) {
-    mutex.Lock()
-    defer mutex.Unlock()
-    CachePtr.orders[orderUID] = order
+// returns true if the cache entry has expired.
+func (e *cacheEntry) expired() bool {
+	return !e.expiration.IsZero() && time.Now().After(e.expiration)
 }

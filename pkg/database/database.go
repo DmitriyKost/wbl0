@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/DmitriyKost/wbl0/pkg/structs"
 	_ "github.com/lib/pq"
@@ -18,7 +19,6 @@ var mutex sync.Mutex
 // Inits database and cache in exactly this order, whenever the pkg/database is imported (actually when application starts).
 func init() {
     initDB()
-    initCache()
 }
 
 
@@ -78,6 +78,17 @@ func InsertOrder(order []byte) error {
     } else if rowsAffected, _ := res.RowsAffected(); rowsAffected == 0 {
         return nil
     }
-    cacheOrder(order, orderUID.OrderUID)
+    OrderCache.Set(orderUID.OrderUID, order, time.Second)
     return nil
+}
+
+func getOrder(orderUID string) (error, []byte) {
+    var order []byte
+    query := "SELECT order_data FROM orders WHERE order_uid=$1";
+    row := db.QueryRow(query, orderUID)
+    if err := row.Scan(&order); err != nil {
+        log.Printf("Error getting order from db: %v", err)
+        return err, nil
+    }
+    return nil, order
 }

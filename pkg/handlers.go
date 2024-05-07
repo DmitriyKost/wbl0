@@ -23,7 +23,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 // If the order is found, it writes the order data as JSON to the response body.
 func GetOrder(w http.ResponseWriter, r *http.Request) {
     orderUID := r.PathValue("order_uid")
-    if order, err := database.GetOrder(orderUID); err != nil {
+    if order := database.OrderCache.Get(orderUID); order == nil {
         http.Error(w, "There's no order with this id :(", http.StatusBadRequest)
         return
     } else {
