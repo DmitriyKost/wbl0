@@ -21,3 +21,4 @@ go build cmd/main.go
 ```
 ### wrk benchmarking
 ![](./media_files/wrk_tests.png)
+Since wrk tests were conducted locally, the testing may inaccurately simulate network conditions.
