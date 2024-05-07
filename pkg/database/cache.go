@@ -15,6 +15,8 @@ var CachePtr *Cache
 // Creates a new cache instance and fills it with orders from the database.
 //
 // It panics if there's error scanning orders.
+//
+// Mutex lock is not acquired, because function runs whenewer database is imported (i.e. before all the read/write processes).
 func initCache() {
     CachePtr = &Cache{
         orders: make(map[string][]byte),

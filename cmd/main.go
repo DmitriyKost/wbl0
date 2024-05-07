@@ -14,6 +14,7 @@ import (
 )
 
 
+// Application panics if there's error connecting to NATS streaming or running HTTP server.
 func main() {
 	clusterID := os.Getenv("CLUSTER_ID")
 	clientID := os.Getenv("SUBSCRIBER_ID")

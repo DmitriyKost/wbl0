@@ -15,7 +15,7 @@ import (
 var db *sql.DB
 var mutex sync.Mutex
 
-// Inits database and cache in exactly this order. Whenever the pkg/database is imported (actually when application starts.)
+// Inits database and cache in exactly this order, whenever the pkg/database is imported (actually when application starts).
 func init() {
     initDB()
     initCache()
@@ -48,6 +48,7 @@ func initDB() {
         log.Fatalf("Cannot connect to db: %v", err)
     }
 
+    // Reads the table schemas and executes CREATE TABLE queries, if table not exists.
     migrations, err := os.ReadFile("./config/migrations.sql")
     if err != nil {
         log.Fatalf("Failed to read migrations: %v", err)
