@@ -78,7 +78,7 @@ func InsertOrder(order []byte) error {
     } else if rowsAffected, _ := res.RowsAffected(); rowsAffected == 0 {
         return nil
     }
-    OrderCache.Set(orderUID.OrderUID, order, time.Second)
+    OrderCache.Set(orderUID.OrderUID, order, time.Hour)
     return nil
 }
 

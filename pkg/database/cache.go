@@ -65,7 +65,7 @@ func (c *Cache) Get(orderUID string) []byte {
             return nil
         }
         go func() {
-            c.Set(orderUID, value, time.Second)
+            c.Set(orderUID, value, time.Hour)
 		}()
 	} else {
         value = entry.order
