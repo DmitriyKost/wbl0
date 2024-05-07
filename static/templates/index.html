@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wbl0</title>
+    <style>
+        .response {
+            margin-top: 10px;
+            margin-left: 5%;
+        }
+    </style>
+</head>
+<body>
+    <h2>L0</h2>
+    <form id="Form">
+        <label for="inputString">Enter order UID:</label>
+        <input type="text" id="inputString" name="inputString" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="response" class="response"></div>
+
+    <script>
+        document.getElementById('Form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const inputString = document.getElementById('inputString').value;
+            fetch('/get/'+inputString+'/', {
+                method: 'GET',
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 400) {
+                    throw new Error('Invalid order UID');
+                } else {
+                    throw new Error('Something went wrong, try again later...');
+                }
+            })
+            .then(data => {
+                document.getElementById('response').innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch(error => {
+                document.getElementById('response').textContent = error.message;
+            });
+        });
+    </script>
+</body>
+</html>
